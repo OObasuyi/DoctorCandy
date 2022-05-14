@@ -1,5 +1,5 @@
 # Doctor Candy
-## Doc-to-txt IP and Domain Block List Creator
+## Doc-to-TXT IP and Domain Block List Creator
 
 Doctor Candy take a word file and transforms it into a txt list of URLs and IPS that can used for a block list. Please note that this tool currently only support .docx so if your file ends in another extension please convert as needed!
 
