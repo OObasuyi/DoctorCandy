@@ -40,7 +40,7 @@ def make_block_list(new_file_name:str):
         f_name = f'{digest_loc}/{file}'
         document = ZipFile(f_name)
         if 'word/document.xml' not in document.namelist():
-            raise Exception('didnt find needed attr in file xml stuture please add this feature to fix')
+            raise Exception('didn\'t find needed attr in file xml stuture please add this feature to fix')
         parsed_xml = parseString(document.read('word/document.xml', pwd=None)).toprettyxml(indent=" ")
         ip_4 = re.findall( r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|', parsed_xml)
         ip_6 = re.findall( r'\[?[A-F0-9]*:[A-F0-9:]+]?', parsed_xml)
@@ -71,6 +71,8 @@ def make_block_list(new_file_name:str):
 
     output_path = f'{top_dir}/product'
     for type_,master in zip(['ip','url'],[master_ip_list,master_domain_list]):
+        if len(master) == 0:
+            continue
         write_file_name = f'{output_path}/{type_}/{new_file_name}_{type_}.txt'
         if not path.exists(write_file_name):
             with open(write_file_name,'w') as nfn:
@@ -83,7 +85,7 @@ def make_block_list(new_file_name:str):
 def term_trans():
     parser = ArgumentParser(prog='DoctorCandy')
     mandatory_args = parser.add_argument_group(title='DoctorCandy Mandatory Fields')
-    mandatory_args.add_argument('-file_name', required=True, type=str)
+    mandatory_args.add_argument('-file_name', required=True, type=str,help='a unique output file name that will be appended to the file(s)')
     args = parser.parse_args()
     make_block_list(new_file_name=args.file_name)
 
