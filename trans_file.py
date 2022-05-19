@@ -1,10 +1,11 @@
-from os import walk,replace,path,mkdir
-from zipfile import ZipFile
 import re
-from xml.dom.minidom import parseString
-from ipaddress import ip_address
-from requests import get
 from argparse import ArgumentParser
+from ipaddress import ip_address
+from os import walk, replace, path
+from xml.dom.minidom import parseString
+from zipfile import ZipFile
+
+from requests import get
 
 TOP_DIR = path.dirname(path.abspath(__file__))
 
