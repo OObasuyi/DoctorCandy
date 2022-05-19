@@ -1,4 +1,4 @@
-from os import walk,replace,path
+from os import walk,replace,path,mkdir
 from zipfile import ZipFile
 import re
 from xml.dom.minidom import parseString
@@ -6,6 +6,7 @@ from ipaddress import ip_address
 from requests import get
 from argparse import ArgumentParser
 
+TOP_DIR = path.dirname(path.abspath(__file__))
 
 def find_valid_urls():
     regex = r'('
@@ -17,7 +18,10 @@ def find_valid_urls():
         regex += fr'({tld})'
     except Exception as e:
         print(e)
-        regex += r'([A-Z]{2,6})'
+        with open(path.join(TOP_DIR,'tlds','common_tlds.txt')) as tldtxt:
+            tld_output = tldtxt.read()
+        tld = '|'.join(tld_output.split('\n')[:-1])
+        regex += fr'({tld})'
     # Port:
     regex += r'(?::(\d{1,5}))?'
     # Query path:
@@ -29,15 +33,14 @@ def find_valid_urls():
 def make_block_list(new_file_name:str):
     get_urls = find_valid_urls()
     import_dir = 'digest_files'
-    top_dir = path.dirname(path.abspath(__file__))
-    digest_loc = f'{top_dir}/{import_dir}'
+    digest_loc = path.join(TOP_DIR,import_dir)
     _, _, filenames = next(walk(digest_loc))
     master_ip_list = []
     master_domain_list = []
     for file in filenames:
-        if all([not file.endswith('.doc'), not file.endswith('.docx')]):
+        if not file.endswith('.docx'):
             continue
-        f_name = f'{digest_loc}/{file}'
+        f_name = path.join(digest_loc,file)
         document = ZipFile(f_name)
         if 'word/document.xml' not in document.namelist():
             raise Exception('didn\'t find needed attr in file xml stuture please add this feature to fix')
@@ -55,7 +58,8 @@ def make_block_list(new_file_name:str):
             if all(['schemas.microsoft.co' not in url_tup[0],'schemas.openxml'not in url_tup[0]]):
                 master_domain_list.append(url_tup[0])
         # move processed files
-        move_digest_to_spent_dir = f"{top_dir}/spent_files/{file}"
+        document.close()
+        move_digest_to_spent_dir = path.join(TOP_DIR,'spent_files',file)
         if not path.exists(new_file_name):
             try:
                 replace(f_name, move_digest_to_spent_dir)
@@ -69,13 +73,13 @@ def make_block_list(new_file_name:str):
     master_ip_list = list(set(master_ip_list))
     master_domain_list = list(set(master_domain_list))
 
-    output_path = f'{top_dir}/product'
+    output_path = path.join(TOP_DIR,'product')
     for type_,master in zip(['ip','url'],[master_ip_list,master_domain_list]):
         if len(master) == 0:
             continue
-        write_file_name = f'{output_path}/{type_}/{new_file_name}_{type_}.txt'
+        write_file_name = path.join(output_path,type_,f'{new_file_name}_{type_}.txt')
         if not path.exists(write_file_name):
-            with open(write_file_name,'w') as nfn:
+            with open(write_file_name,'w+') as nfn:
                 for item in master:
                     nfn.write(f'{item}\n')
         else:
@@ -92,3 +96,4 @@ def term_trans():
 
 if __name__ == "__main__":
     term_trans()
+    
