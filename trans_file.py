@@ -58,7 +58,7 @@ def make_block_list(new_file_name: str):
         for ip in ip_list_raw:
             try:
                 master_ip_list.append(str(ip_address(ip)))
-            except:
+            except: #lgtm [py/catch-base-exception]
                 continue
         url_list_raw = get_urls.findall(parsed_xml)
         for url_tup in url_list_raw:
