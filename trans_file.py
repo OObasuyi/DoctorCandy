@@ -2,7 +2,6 @@ from os import walk, replace, path, makedirs
 from zipfile import ZipFile
 import re
 from xml.dom.minidom import parseString
-from ipaddress import ip_address, IPv4Network
 from argparse import ArgumentParser
 import pypdf
 
@@ -48,6 +47,7 @@ class TransferFiles():
                         fixed_url_list.append(data)
                 fixed_url = [url.replace("[.]", ".") for url in fixed_url_list]
             else:
+                obj_list = ["".join(url.split()) for url in obj_list]
                 url_list_raw = [get_urls.findall(url_to_get) for url_to_get in obj_list]
                 # remove inner list, any specials , clean it up
                 fixed_url = [url_obj.replace("[.]", ".") for sublist in url_list_raw for url_obj in sublist]
