@@ -19,20 +19,6 @@ class TransferFiles():
 
     @staticmethod
     def find_valid_urls():
-        # regex = r'('
-        # # Host and domain (including ccSLD):
-        # regex += r'(?:(?:[A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9]\.)+)'
-        # # TLD:
-        # # too much to keep with new TLDs?
-        # # with open(path.join(TOP_DIR, 'tlds', 'common_tlds.txt')) as tldtxt:
-        # #     tld_output = tldtxt.read()
-        # # tld = '|'.join(tld_output.split('\n')[:-1])
-        # # regex += fr'({tld})'
-        # # Port:
-        # regex += r'(?::(\d{1,5}))?'
-        # # Query path:
-        # regex += r'(?:(\/\S+)*)'
-        # regex += r'( |</w:t>|\n))'
         regex = r'\b(?:[a-zA-Z0-9-]+\[?\.\]?)+[a-zA-Z]{2,}\b'
         return re.compile(regex, re.IGNORECASE)
 
