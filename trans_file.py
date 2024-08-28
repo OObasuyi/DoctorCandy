@@ -10,47 +10,32 @@ TOP_DIR = path.dirname(path.abspath(__file__))
 
 
 class TransferFiles():
-    def __init__(self,output_name: str, fix_list: bool = False):
+    def __init__(self, output_name: str, fix_list: bool = False):
         self.master_domain_list = []
         self.master_ip_list = []
         self.output_name = output_name
         self.fix_list = fix_list
-
 
     @staticmethod
     def find_valid_urls():
         regex = r'\b(?:[a-zA-Z0-9-]+\[?\.\]?)+[a-zA-Z]{2,}\b'
         return re.compile(regex, re.IGNORECASE)
 
-    def create_master_lists(self, list_type_:tuple, file_type_='pdf'):
+    def create_master_lists(self, list_type_: tuple, file_type_='pdf'):
         get_type = list_type_[0]
         obj_list = list_type_[1]
         if get_type == 'ip':
             if file_type_ == 'docx':
                 ip_4 = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', obj_list)
-                ip_6 = re.findall(r'\[?[A-F0-9]*:[A-F0-9:]+]?', obj_list)
+                ip_6 = re.findall(r'\b((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::(?:[0-9a-fA-F]{1,4}:){1,6}|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4})\b', obj_list)
                 ip_list_raw = ip_4 + ip_6
-
             else:
                 ip_4 = [re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', get_ip4) for get_ip4 in obj_list]
-                ip_6 = [re.findall(r'\[?[A-F0-9]*:[A-F0-9:]+]?', get_ip6) for get_ip6 in obj_list]
+                ip_6 = [re.findall(r'\b((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::(?:[0-9a-fA-F]{1,4}:){1,6}|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4})\b', get_ip6) for get_ip6 in obj_list]
                 ip_list_raw = ip_4 + ip_6
                 # remove inner list, any specials , clean it up
                 ip_list_raw = [ip_obj for sublist in ip_list_raw for ip_obj in sublist]
-
-            for ip in ip_list_raw:
-                try:
-                    # confirm whethers its a real IP and check if its a subnet or single
-                    if '/' not in ip:
-                        takeip = f'{str(ip_address(ip))}/32'
-                    else:
-                        try:
-                            takeip = str(IPv4Network(ip))
-                        except:
-                            takeip = str(IPv4Network(ip.split('/')[0]))
-                    self.master_ip_list.append(takeip)
-                except Exception as e:
-                    continue
+            self.master_ip_list += ip_list_raw
 
         elif get_type == 'url':
             get_urls = self.find_valid_urls()
@@ -62,7 +47,6 @@ class TransferFiles():
                         data = re.sub('(</w:t>|/n)', '', url)
                         fixed_url_list.append(data)
                 fixed_url = [url.replace("[.]", ".") for url in fixed_url_list]
-
             else:
                 url_list_raw = [get_urls.findall(url_to_get) for url_to_get in obj_list]
                 # remove inner list, any specials , clean it up
@@ -103,10 +87,10 @@ class TransferFiles():
                     parsed_data = parsed_data + page_data
                 pdfFileObj.close()
 
-            ip_list_raw = ('ip',parsed_data)
+            ip_list_raw = ('ip', parsed_data)
             self.create_master_lists(file_type_=file_type, list_type_=ip_list_raw)
 
-            url_list_raw = ('url',parsed_data)
+            url_list_raw = ('url', parsed_data)
             self.create_master_lists(file_type_=file_type, list_type_=url_list_raw)
 
             # need to move file so we dont have continually reopen our one file we are sending to product while being able to take in multple docs
@@ -121,7 +105,6 @@ class TransferFiles():
         if self.fix_list:
             self.master_ip_list = self.deduplicate_list(new_data=self.master_ip_list, data_type='ip')
             self.master_domain_list = self.deduplicate_list(new_data=self.master_domain_list, data_type='url')
-
 
     def make_block_list(self):
         self.block_creator_engine()
@@ -152,7 +135,8 @@ class TransferFiles():
         print('Please review before upload')
         print('Files have been moved successfully :)')
 
-    def deduplicate_list(self,new_data: list, data_type: str, ignore_lines='#'):
+    @staticmethod
+    def deduplicate_list( new_data: list, data_type: str, ignore_lines='#'):
         digest_loc = path.join(TOP_DIR, 'misc_files')
         _, _, filenames = next(walk(digest_loc))
         master_list = []
@@ -201,7 +185,7 @@ def term_trans():
     optional_args.add_argument('--fix_list', default=False, type=bool, help='if you have a master list you want to compare to the current list')
     args = parser.parse_args()
 
-    transf = TransferFiles(output_name=args.file_name, fix_list=args.fix_list)
+    transf = TransferFiles(output_name=args.output_name, fix_list=args.fix_list)
     transf.make_block_list()
 
 
