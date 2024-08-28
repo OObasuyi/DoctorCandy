@@ -5,7 +5,7 @@
 /spent_files/
 
 *.pdf
-*.word
+*.docx
 *.github
 
 ### Python template

@@ -26,13 +26,19 @@ class TransferFiles():
         get_type = list_type_[0]
         obj_list = list_type_[1]
         if get_type == 'ip':
+            if file_type_ == 'docx':
+                ip_4 = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', obj_list)
+                ip_6 = re.findall(r'\[?[A-F0-9]*:[A-F0-9:]+]?', obj_list)
+                ip_list_raw = ip_4 + ip_6
 
-            ip_4 = [re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', get_ip4) for get_ip4 in obj_list]
-            ip_6 = [re.findall(r'\[?[A-F0-9]*:[A-F0-9:]+]?', get_ip6) for get_ip6 in obj_list]
-            ip_list_raw = ip_4 + ip_6
-            # remove inner list, any specials , clean it up
-            url_list_raw = [ip_obj for sublist in ip_list_raw for ip_obj in sublist]
-            for ip in url_list_raw:
+            else:
+                ip_4 = [re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', get_ip4) for get_ip4 in obj_list]
+                ip_6 = [re.findall(r'\[?[A-F0-9]*:[A-F0-9:]+]?', get_ip6) for get_ip6 in obj_list]
+                ip_list_raw = ip_4 + ip_6
+                # remove inner list, any specials , clean it up
+                ip_list_raw = [ip_obj for sublist in ip_list_raw for ip_obj in sublist]
+
+            for ip in ip_list_raw:
                 try:
                     # confirm whethers its a real IP and check if its a subnet or single
                     if '/' not in ip:
@@ -48,17 +54,21 @@ class TransferFiles():
 
         elif get_type == 'url':
             get_urls = self.find_valid_urls()
-            url_list_raw = [get_urls.findall(url_to_get) for url_to_get in obj_list]
-            # remove inner list, any specials , clean it up
-            url_list_raw = [url_obj.replace("[.]", ".") for sublist in url_list_raw for url_obj in sublist]
+            if file_type_ == 'docx':
+                url_list_raw = get_urls.findall(obj_list)
+                fixed_url_list = []
+                for url in url_list_raw:
+                    if all(['schemas.microsoft.co' not in url, 'schemas.openxml' not in url]):
+                        data = re.sub('(</w:t>|/n)', '', url)
+                        fixed_url_list.append(data)
+                fixed_url = [url.replace("[.]", ".") for url in fixed_url_list]
 
-            if file_type_ == 'word':
-                for url_tup in url_list_raw:
-                    if all(['schemas.microsoft.co' not in url_tup[0], 'schemas.openxml' not in url_tup[0]]):
-                        data = re.sub('(</w:t>|/n)', '', url_tup[0])
-                        self.master_domain_list.append(data)
             else:
-                self.master_domain_list += url_list_raw
+                url_list_raw = [get_urls.findall(url_to_get) for url_to_get in obj_list]
+                # remove inner list, any specials , clean it up
+                fixed_url = [url_obj.replace("[.]", ".") for sublist in url_list_raw for url_obj in sublist]
+
+            self.master_domain_list += fixed_url
 
     def block_creator_engine(self):
         digest_loc = TOP_DIR
@@ -76,7 +86,9 @@ class TransferFiles():
                 document = ZipFile(f_name)
                 if 'word/document.xml' not in document.namelist():
                     raise Exception('didn\'t find needed attr in file xml stuture please add this feature to fix')
-                parsed_data = parseString(document.read('word/document.xml', pwd=None)).toprettyxml(indent=" ")
+                parsed_data = parseString(document.read('word/document.xml', pwd=None))
+                # with xml data pull only the body
+                parsed_data = parsed_data.getElementsByTagName('w:body')[0].toprettyxml(indent=" ")
 
                 document.close()
             elif file.endswith('.pdf'):
