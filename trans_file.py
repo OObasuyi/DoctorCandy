@@ -115,11 +115,11 @@ class TransferFiles:
     def make_block_list(self):
         self.block_creator_engine()
 
-        print(f'{len(self.master_ip_list)} IPs have been extracted')
-        print(f'{len(self.master_domain_list)} URLs have been extracted')
-        print('combining and moving files....')
         master_ip_list = list(set(self.master_ip_list))
         master_domain_list = list(set(self.master_domain_list))
+        print(f'{len(master_ip_list)} IPs have been extracted')
+        print(f'{len(master_domain_list)} URLs have been extracted')
+        print('combining and moving files....')
 
         # output_path = path.join(self.top_dir,'product')
 
@@ -130,13 +130,20 @@ class TransferFiles:
             output_path = f'{self.top_dir}/product/{type_}'
             makedirs(output_path, exist_ok=True)
 
-            write_file_name = path.join(output_path, f'{self.output_name}_{type_}.txt')
-            if not path.exists(write_file_name):
-                with open(write_file_name, 'w+') as nfn:
-                    for item in master:
-                        nfn.write(f'{item}\n')
-            else:
-                raise FileExistsError(f'{write_file_name} already exist......')
+            while True:
+                created = False
+                write_file_name = path.join(output_path, f'{self.output_name}_{type_}.txt')
+                if not path.exists(write_file_name):
+                    with open(write_file_name, 'w+') as nfn:
+                        for item in master:
+                            nfn.write(f'{item}\n')
+                    created = True
+                else:
+                    print(f'{write_file_name} already exist......')
+                    self.output_name = input(f'please choose a new name: ')
+
+                if created:
+                    break
 
         print('Please review before upload')
         print('Files have been moved successfully :)')
@@ -196,7 +203,7 @@ class TransferFiles:
             tld_output = '|'.join(tld_output.split('\n')[1:])[:-1]
             self.tld_output = tld_output
 
-# todo: catch spent file already exist error and ask to make a new name to save
+
 def term_trans():
     parser = ArgumentParser(prog='DoctorCandy')
     mandatory_args = parser.add_argument_group(title='DoctorCandy Mandatory Fields')
@@ -204,13 +211,16 @@ def term_trans():
 
     optional_args = parser.add_argument_group(title='DoctorCandy Optional Fields')
     optional_args.add_argument('--fix_list', default=False, type=bool, help='if you have a master list you want to compare to the current list')
+
+    optional_args = parser.add_argument_group(title='DoctorCandy Optional Fields')
+    optional_args.add_argument('--fetch_new_tld', default=False, type=bool, help='if you to fetch a new TLD list from IANA')
     args = parser.parse_args()
 
-    transf = TransferFiles(output_name=args.output_name, fix_list=args.fix_list)
+    transf = TransferFiles(output_name=args.output_name, fix_list=args.fix_list, fetch_new_tld=args.fetch_new_tld)
     transf.make_block_list()
 
 
 if __name__ == "__main__":
-    tf = TransferFiles(output_name='tester_batch_4', fix_list=False, fetch_new_tld=False)
+    tf = TransferFiles(output_name='tester_batch_1', fix_list=False, fetch_new_tld=False)
     # tf.make_block_list()
     term_trans()
