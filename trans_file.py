@@ -16,20 +16,6 @@ class TransferFiles:
         self.top_dir = path.dirname(path.abspath(__file__))
         self.get_recent_tlds()
 
-    def find_valid_urls(self):
-        regex = r'('
-        # Host and domain (including ccSLD):
-        regex += r'(?:(?:[A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9]\.)+)'
-        # TLD:
-        tld = self.get_recent_tlds()
-        regex += fr'({tld})'
-        # Port:
-        regex += r'(?::(\d{1,5}))?'
-        # Query path:
-        regex += r'(?:(\/\S+)*)'
-        regex += r'( |</w:t>|\n))'
-        return re.compile(regex, re.IGNORECASE)
-
     def create_master_lists(self, list_type_: tuple, file_type_='pdf'):
         get_type = list_type_[0]
         obj_list = list_type_[1]
@@ -63,7 +49,7 @@ class TransferFiles:
                     if all(['schemas.microsoft.co' not in url, 'schemas.openxml' not in url]):
                         data = re.sub('(</w:t>|/n)', '', url)
                         fixed_url_list.append(data)
-                fixed_url = [url.replace("[.]", ".") for url in fixed_url_list]
+                cleaned_url = url_list_raw
             else:
                 obj_list = ["".join(url.split()) for url in obj_list]
                 # normalize list
@@ -71,7 +57,6 @@ class TransferFiles:
                 # get URLs
                 url_list_raw = [re.findall(url_regex,url_to_get,flags=re.IGNORECASE) for url_to_get in fixed_url]
                 cleaned_url = [si for mi in url_list_raw for si in mi]
-
 
             self.master_domain_list += cleaned_url
 
@@ -226,6 +211,6 @@ def term_trans():
 
 
 if __name__ == "__main__":
-    tf = TransferFiles(output_name='tester_batch_1', fix_list=False, fetch_new_tld=False)
-    tf.make_block_list()
-    # term_trans()
+    tf = TransferFiles(output_name='tester_batch_4', fix_list=False, fetch_new_tld=False)
+    # tf.make_block_list()
+    term_trans()
