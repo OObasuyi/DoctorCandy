@@ -5,19 +5,33 @@ from xml.dom.minidom import parseString
 from argparse import ArgumentParser
 import pypdf
 
-TOP_DIR = path.dirname(path.abspath(__file__))
 
-
-class TransferFiles():
-    def __init__(self, output_name: str, fix_list: bool = False):
+class TransferFiles:
+    def __init__(self, output_name: str, fix_list: bool = False,fetch_tld: bool = False):
         self.master_domain_list = []
         self.master_ip_list = []
         self.output_name = output_name
         self.fix_list = fix_list
+        self.fetch_tlds = fetch_tld
+        self.top_dir = path.dirname(path.abspath(__file__))
 
     @staticmethod
     def find_valid_urls():
-        regex = r'\b(?:[a-zA-Z0-9-]+\[?\.\]?)+[a-zA-Z]{2,}\b'
+        # regex = r'\b(?:[a-zA-Z0-9-]+\[?\.\]?)+[a-zA-Z]{2,}\b'
+        # return re.compile(regex, re.IGNORECASE)
+        regex = r'('
+        # Host and domain (including ccSLD):
+        regex += r'(?:(?:[A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9]\.)+)'
+        # TLD:
+        with open(path.join(self.top_dir, 'tlds', 'common_tlds.txt')) as tldtxt:
+            tld_output = tldtxt.read()
+        tld = '|'.join(tld_output.split('\n')[:-1])
+        regex += fr'({tld})'
+        # Port:
+        regex += r'(?::(\d{1,5}))?'
+        # Query path:
+        regex += r'(?:(\/\S+)*)'
+        regex += r'( |</w:t>|\n))'
         return re.compile(regex, re.IGNORECASE)
 
     def create_master_lists(self, list_type_: tuple, file_type_='pdf'):
@@ -55,7 +69,7 @@ class TransferFiles():
             self.master_domain_list += fixed_url
 
     def block_creator_engine(self):
-        digest_loc = TOP_DIR
+        digest_loc = self.top_dir
         _, _, filenames = next(walk(digest_loc))
         for file in filenames:
             file_type = None
@@ -94,8 +108,8 @@ class TransferFiles():
             self.create_master_lists(file_type_=file_type, list_type_=url_list_raw)
 
             # need to move file so we dont have continually reopen our one file we are sending to product while being able to take in multple docs
-            makedirs(path.join(TOP_DIR, 'spent_files'), exist_ok=True)
-            move_digest_to_spent_dir = path.join(TOP_DIR, 'spent_files', file)
+            makedirs(path.join(self.top_dir, 'spent_files'), exist_ok=True)
+            move_digest_to_spent_dir = path.join(self.top_dir, 'spent_files', file)
             if not path.exists(self.output_name):
                 try:
                     replace(f_name, move_digest_to_spent_dir)
@@ -115,13 +129,13 @@ class TransferFiles():
         master_ip_list = list(set(self.master_ip_list))
         master_domain_list = list(set(self.master_domain_list))
 
-        # output_path = path.join(TOP_DIR,'product')
+        # output_path = path.join(self.top_dir,'product')
 
         for type_, master in zip(['ip', 'url'], [master_ip_list, master_domain_list]):
             if len(master) == 0:
                 continue
             # make the path if doesnt exist or use this path for the type_
-            output_path = f'{TOP_DIR}/product/{type_}'
+            output_path = f'{self.top_dir}/product/{type_}'
             makedirs(output_path, exist_ok=True)
 
             write_file_name = path.join(output_path, f'{self.output_name}_{type_}.txt')
@@ -137,7 +151,7 @@ class TransferFiles():
 
     @staticmethod
     def deduplicate_list( new_data: list, data_type: str, ignore_lines='#'):
-        digest_loc = path.join(TOP_DIR, 'misc_files')
+        digest_loc = path.join(self.top_dir, 'misc_files')
         _, _, filenames = next(walk(digest_loc))
         master_list = []
         files_present = False
@@ -175,6 +189,20 @@ class TransferFiles():
         else:
             return new_data
 
+    def get_recent_tlds(self):
+        # need to to get common TLD else the parser will mix the tlds with a potential sentence end
+        if self.fetch_tlds:
+            from requests import get
+            fetched_tld = get(f'https://data.iana.org/TLD/tlds-alpha-by-domain.txt')
+            if fetched_tld.status_code == 200:
+                with open(path.join(self.top_dir, 'tlds', 'common_tlds.txt'), 'w') as tldtxt:
+                    tldtxt.write(fetched_tld.text)
+        # pull tlds
+        with open(path.join(self.top_dir, 'tlds', 'common_tlds.txt')) as tldtxt:
+            tld_output = tldtxt.read()
+            # make regex compatible
+            tld_output = '|'.join(tld_output.split('\n')[1:])[:-1]
+            return tld_output
 
 def term_trans():
     parser = ArgumentParser(prog='DoctorCandy')
@@ -190,6 +218,7 @@ def term_trans():
 
 
 if __name__ == "__main__":
-    tf = TransferFiles(output_name='tester_batch_1', fix_list=False)
-    tf.make_block_list()
+    tf = TransferFiles(output_name='tester_batch_1', fix_list=False,fetch_tld=False)
+    # tf.make_block_list()
     # term_trans()
+    tf.get_recent_tlds()
