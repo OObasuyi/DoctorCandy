@@ -112,7 +112,8 @@ url_list = [
     "test-hyphen[.]example-site[.]org",
     "resource[.]example-hyphen[.]com",
     "sub-domain[.]example-hyphen[.]net",
-    "2001:0db8:8765:0000:0000:8a2e:0370:7334"
+    "2001:0db8:8765:0000:0000:8a2e:0370:7334",
+    "welcome to URls tou should block. PLease feel free to come back"
 ]
 
 # Create a PDF document

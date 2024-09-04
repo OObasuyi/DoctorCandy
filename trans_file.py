@@ -7,25 +7,20 @@ import pypdf
 
 
 class TransferFiles:
-    def __init__(self, output_name: str, fix_list: bool = False,fetch_tld: bool = False):
+    def __init__(self, output_name: str, fix_list: bool = False,fetch_new_tld: bool = False):
         self.master_domain_list = []
         self.master_ip_list = []
         self.output_name = output_name
         self.fix_list = fix_list
-        self.fetch_tlds = fetch_tld
+        self.fetch_new_tlds = fetch_new_tld
         self.top_dir = path.dirname(path.abspath(__file__))
 
-    @staticmethod
-    def find_valid_urls():
-        # regex = r'\b(?:[a-zA-Z0-9-]+\[?\.\]?)+[a-zA-Z]{2,}\b'
-        # return re.compile(regex, re.IGNORECASE)
+    def find_valid_urls(self):
         regex = r'('
         # Host and domain (including ccSLD):
         regex += r'(?:(?:[A-Z0-9][A-Z0-9-]{0,61}[A-Z0-9]\.)+)'
         # TLD:
-        with open(path.join(self.top_dir, 'tlds', 'common_tlds.txt')) as tldtxt:
-            tld_output = tldtxt.read()
-        tld = '|'.join(tld_output.split('\n')[:-1])
+        tld = self.get_recent_tlds()
         regex += fr'({tld})'
         # Port:
         regex += r'(?::(\d{1,5}))?'
@@ -149,8 +144,7 @@ class TransferFiles:
         print('Please review before upload')
         print('Files have been moved successfully :)')
 
-    @staticmethod
-    def deduplicate_list( new_data: list, data_type: str, ignore_lines='#'):
+    def deduplicate_list( self,new_data: list, data_type: str, ignore_lines='#'):
         digest_loc = path.join(self.top_dir, 'misc_files')
         _, _, filenames = next(walk(digest_loc))
         master_list = []
@@ -190,8 +184,9 @@ class TransferFiles:
             return new_data
 
     def get_recent_tlds(self):
-        # need to to get common TLD else the parser will mix the tlds with a potential sentence end
-        if self.fetch_tlds:
+        # need to get common TLD else the parser will mix the tlds with a potential sentence end
+        if self.fetch_new_tlds:
+            # if we need a newer list
             from requests import get
             fetched_tld = get(f'https://data.iana.org/TLD/tlds-alpha-by-domain.txt')
             if fetched_tld.status_code == 200:
@@ -204,6 +199,7 @@ class TransferFiles:
             tld_output = '|'.join(tld_output.split('\n')[1:])[:-1]
             return tld_output
 
+# todo: catch spent file already exist error and ask to make a new name to save
 def term_trans():
     parser = ArgumentParser(prog='DoctorCandy')
     mandatory_args = parser.add_argument_group(title='DoctorCandy Mandatory Fields')
@@ -218,7 +214,6 @@ def term_trans():
 
 
 if __name__ == "__main__":
-    tf = TransferFiles(output_name='tester_batch_1', fix_list=False,fetch_tld=False)
-    # tf.make_block_list()
+    tf = TransferFiles(output_name='tester_batch_6', fix_list=False, fetch_new_tld=False)
+    tf.make_block_list()
     # term_trans()
-    tf.get_recent_tlds()
