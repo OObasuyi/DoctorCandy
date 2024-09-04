@@ -1,0 +1,3 @@
+requests #to get new lists if needed
+fpdf
+python-docx

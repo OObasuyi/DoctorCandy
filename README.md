@@ -16,6 +16,6 @@ Doctor Candy take a word file and transforms it into a txt list of URLs and IPS 
 
 ## Quick Start
 ```bash
-python3 trans_file.py -file_name <testing>
+python3 trans_file.py -output_name <testing>
 ```
 
