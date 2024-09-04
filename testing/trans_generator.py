@@ -1,15 +1,7 @@
 from fpdf import FPDF
+from docx import Document
 
-# Create a PDF class
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'List of URLs and IP Addresses', 0, 1, 'C')
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
 # List of URLs and IP Addresses
 url_list = [
@@ -115,18 +107,48 @@ url_list = [
     "2001:0db8:8765:0000:0000:8a2e:0370:7334",
     "welcome to URls tou should block. PLease feel free to come back"
 ]
-
+print(f'generating {len(url_list)} test items :)')
 # Create a PDF document
-pdf = PDF()
-pdf.add_page()
-pdf.set_font('Arial', '', 12)
 
-# Add each URL or IP address to the PDF
-for url in url_list:
-    pdf.cell(0, 10, url, ln=True)
 
-# Save the PDF to a file
-pdf_file_path = 'ip_url_list.pdf'
-pdf.output(pdf_file_path)
+# Create a PDF class
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'List of URLs and IP Addresses', 0, 1, 'C')
 
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+def create_pdf():
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_font('Arial', '', 12)
+
+    # Add each URL or IP address to the PDF
+    for url in url_list:
+        pdf.cell(0, 10, url, ln=True)
+
+    # Save the PDF to a file
+    pdf_file_path = 'ip_url_list.pdf'
+    pdf.output(pdf_file_path)
+
+def create_docx():
+    # Create a new Document
+    doc = Document()
+
+    # Add a title to the document
+    doc.add_heading('List of URLs and IPs', 0)
+
+    # Add each URL and IP to the document
+    for item in url_list:
+        doc.add_paragraph(item)
+
+    # Save the document as a .docx file
+    doc_path = 'urls_and_ips_list.docx'
+    doc.save(doc_path)
+
+create_docx()
 

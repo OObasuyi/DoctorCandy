@@ -14,6 +14,7 @@ class TransferFiles:
         self.fix_list = fix_list
         self.fetch_new_tlds = fetch_new_tld
         self.top_dir = path.dirname(path.abspath(__file__))
+        self.get_recent_tlds()
 
     def find_valid_urls(self):
         regex = r'('
@@ -32,23 +33,31 @@ class TransferFiles:
     def create_master_lists(self, list_type_: tuple, file_type_='pdf'):
         get_type = list_type_[0]
         obj_list = list_type_[1]
+
+        # url_regex = r'\b(?:[a-zA-Z0-9-]+\.)+(?:' + self.tld_output + r')\b'
+        url_regex = r'\b(?:[a-zA-Z0-9-]+\.)+(?:' + self.tld_output + r')\b'
+        ip4_regex = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)'
+        ipv6_regex = r'\b((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::(?:[0-9a-fA-F]{1,4}:){1,6}|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4})\b'
+
         if get_type == 'ip':
             if file_type_ == 'docx':
-                ip_4 = re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', obj_list)
-                ip_6 = re.findall(r'\b((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::(?:[0-9a-fA-F]{1,4}:){1,6}|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4})\b', obj_list)
+                ip_4 = re.findall(ip4_regex, obj_list)
+                ip_6 = re.findall(ipv6_regex, obj_list)
                 ip_list_raw = ip_4 + ip_6
             else:
-                ip_4 = [re.findall(r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?:/\d{1,2}|)', get_ip4) for get_ip4 in obj_list]
-                ip_6 = [re.findall(r'\b((?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|::(?:[0-9a-fA-F]{1,4}:){1,6}|[0-9a-fA-F]{1,4}::[0-9a-fA-F]{1,4})\b', get_ip6) for get_ip6 in obj_list]
+                ip_4 = [re.findall(ip4_regex, get_ip4) for get_ip4 in obj_list]
+                ip_6 = [re.findall(ipv6_regex, get_ip6) for get_ip6 in obj_list]
                 ip_list_raw = ip_4 + ip_6
                 # remove inner list, any specials , clean it up
                 ip_list_raw = [ip_obj for sublist in ip_list_raw for ip_obj in sublist]
             self.master_ip_list += ip_list_raw
 
         elif get_type == 'url':
-            get_urls = self.find_valid_urls()
             if file_type_ == 'docx':
-                url_list_raw = get_urls.findall(obj_list)
+                # normalize string
+                obj_list = obj_list.replace("[.]", ".")
+                # get urls
+                url_list_raw = re.findall(url_regex,obj_list,flags=re.IGNORECASE)
                 fixed_url_list = []
                 for url in url_list_raw:
                     if all(['schemas.microsoft.co' not in url, 'schemas.openxml' not in url]):
@@ -57,11 +66,14 @@ class TransferFiles:
                 fixed_url = [url.replace("[.]", ".") for url in fixed_url_list]
             else:
                 obj_list = ["".join(url.split()) for url in obj_list]
-                url_list_raw = [get_urls.findall(url_to_get) for url_to_get in obj_list]
-                # remove inner list, any specials , clean it up
-                fixed_url = [url_obj.replace("[.]", ".") for sublist in url_list_raw for url_obj in sublist]
+                # normalize list
+                fixed_url = [url_obj.replace("[.]", ".") for url_obj in obj_list]
+                # get URLs
+                url_list_raw = [re.findall(url_regex,url_to_get,flags=re.IGNORECASE) for url_to_get in fixed_url]
+                cleaned_url = [si for mi in url_list_raw for si in mi]
 
-            self.master_domain_list += fixed_url
+
+            self.master_domain_list += cleaned_url
 
     def block_creator_engine(self):
         digest_loc = self.top_dir
@@ -197,7 +209,7 @@ class TransferFiles:
             tld_output = tldtxt.read()
             # make regex compatible
             tld_output = '|'.join(tld_output.split('\n')[1:])[:-1]
-            return tld_output
+            self.tld_output = tld_output
 
 # todo: catch spent file already exist error and ask to make a new name to save
 def term_trans():
@@ -214,6 +226,6 @@ def term_trans():
 
 
 if __name__ == "__main__":
-    tf = TransferFiles(output_name='tester_batch_6', fix_list=False, fetch_new_tld=False)
+    tf = TransferFiles(output_name='tester_batch_1', fix_list=False, fetch_new_tld=False)
     tf.make_block_list()
     # term_trans()
